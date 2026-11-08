@@ -36,9 +36,9 @@
       if (!/^\s*(?:کیلوگرم|میلی\s*گرم|سوت|kg|mg)/i.test(after)) weights.push(Number(match[1]));
     }
     const purityValues = [];
-    for (const match of text.matchAll(/(?:[عغ]یار\s*[:：]?\s*(999|995|900|750|18)(?!\d)|\b(999|995|900|750)\b|(18)\s*[عغ]یار)/g)) {
+    for (const match of text.matchAll(/(?:[عغ]یار\s*[:：]?\s*(999|995|900|750|18|22)(?![\d.])|\b(999|995|900|750)\b|(?<![\d.])(18|22)\s*[عغ]یار)/g)) {
       const value = Number(match[1] || match[2] || match[3]);
-      purityValues.push(value === 18 ? 750 : value);
+      purityValues.push(value === 18 ? 750 : value === 22 ? 900 : value);
     }
     if (centralBankCoin) purityValues.push(900);
     // User-supplied brand defaults describe the 24-karat lines. Explicit

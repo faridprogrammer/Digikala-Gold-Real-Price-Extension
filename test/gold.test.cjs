@@ -158,6 +158,27 @@ test('explicit 900 purity supports Persian, Arabic and Latin digits', () => {
   }
 });
 
+test('22-karat labels map to 900 in titles and specifications across digit formats', () => {
+  for (const digits of ['22', '۲۲', '٢٢']) {
+    for (const label of [`عیار: ${digits}`, `${digits} عیار`, `${digits} غیار`]) {
+      assert.equal(G.parseFacts(`سکه طلا ${label} وزن ۱ گرم`).purity, 900, label);
+      assert.equal(G.parseFacts('سکه طلا وزن ۱ گرم', label).purity, 900, label);
+    }
+    assert.equal(G.parseFacts(`سکه طلا ${digits} عیار وزن ۱ گرم`, 'عیار: ۹۰۰').purity, 900);
+  }
+});
+
+test('22-karat labels preserve conflicts and do not match weights or model numbers', () => {
+  for (const purity of [750, 995, 999]) {
+    const facts = G.parseFacts('سکه طلا ۲۲ عیار وزن ۱ گرم', `عیار: ${purity}`);
+    assert.equal(facts.purity, null);
+    assert.equal(facts.errors.purity, 'conflict');
+  }
+  for (const title of ['سکه طلا مدل 22 وزن 1 گرم', 'سکه طلا وزن 0.22 گرم', 'سکه طلا 122 عیار وزن 1 گرم', 'سکه طلا عیار 220 وزن 1 گرم', 'سکه طلا 0.22 عیار وزن 1 گرم']) {
+    assert.equal(G.parseFacts(title).purity, null, title);
+  }
+});
+
 test('central bank rule preserves conflicts and does not apply to other coins or products', () => {
   for (const specs of ['عیار: ۷۵۰', 'عیار: ۹۹۵', 'عیار: ۹۹۹']) {
     const facts = G.parseFacts('سکه طلا بانک مرکزی وزن ۱ گرم', specs);

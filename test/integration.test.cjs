@@ -22,6 +22,19 @@ test('central bank coins display a 900-purity calculation', () => {
   } finally { dom.window.close(); }
 });
 
+test('22-karat labels in titles or specifications display a 900-purity calculation', () => {
+  for (const html of [
+    product.replace('شمش طلا 999 وزن 1 گرم', 'سکه طلا ۲۲ عیار وزن ۱ گرم'),
+    product.replace('999 وزن 1 گرم', 'وزن 1 گرم').replace('</main>', '<div data-gold-spec>عیار: ٢٢</div></main>')
+  ]) {
+    const dom = page(html);
+    try {
+      assert.match(widget(dom).textContent, /۸۳۳٬۳۳۳ تومان/);
+      assert.equal(widget(dom).querySelector('[name=purity]').value, '900');
+    } finally { dom.window.close(); }
+  }
+});
+
 test('900 purity can be selected and applied manually', () => {
   const dom = page(product.replace('شمش طلا 999 وزن 1 گرم', 'سکه طلا وزن ۱ گرم'));
   try {
