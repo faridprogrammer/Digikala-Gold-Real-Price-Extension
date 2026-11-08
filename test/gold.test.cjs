@@ -195,3 +195,50 @@ test('central bank rule preserves conflicts and does not apply to other coins or
 test('invalid and unsupported values cannot produce a result', () => {
   for (const values of [{ price: 0, weight: 1, purity: 999 }, { price: 10, weight: -1, purity: 750 }, { price: Infinity, weight: 1, purity: 999 }, { price: 10, weight: 1, purity: 850 }]) assert.equal(G.calculate(values), null);
 });
+
+test('Tokeniko 24-karat bars infer verified 995 purity, including decorated titles', () => {
+  for (const title of [
+    'شمش طلا 24 عیار توکنیکو مدل GHA-0.5',
+    'شمش طلا ۲۴ عیار توکنیکو مدل GON-1',
+    'شمش طلا عیار: ٢٤ توکنیکو مدل GFV-5',
+    'شمش طلا 24 عیـار تـوکـنیـکـو مـدل A - 1'
+  ]) {
+    const facts = G.parseFacts(title, '', { totalWeightText: 'وزن طلا: ۰٫۵ گرم' });
+    assert.equal(facts.eligible, true, title);
+    assert.equal(facts.purity, 995, title);
+    assert.deepEqual(facts.errors, {}, title);
+    assert.equal(G.parseFacts(title, 'عیار: ۹۹۵').purity, 995, title);
+    const conflict = G.parseFacts(title, 'عیار: ۹۹۹');
+    assert.equal(conflict.purity, null, title);
+    assert.equal(conflict.errors.purity, 'conflict', title);
+  }
+});
+
+test('Tokeniko default requires a bar, exact brand and an explicit 24-karat label', () => {
+  for (const title of [
+    'شمش طلا توکنیکو مدل 24',
+    'شمش طلا توکنیکو مدل 240 عیار',
+    'شمش طلا توکنیکو عیار 240',
+    'شمش طلا توکنیکو وزن 0.24 عیار',
+    'شمش طلا توکنیکو عیار 24.5',
+    'شمش طلا 24 عیار توکنیکوپلاس',
+    'انگشتر طلا 24 عیار توکنیکو',
+    'شمش طلا توکنیکو'
+  ]) assert.equal(G.parseFacts(title).purity, null, title);
+  assert.equal(G.parseFacts('شمش طلا ۱۸ عیار توکنیکو').purity, 750);
+  assert.equal(G.parseFacts('شمش طلا توکنیکو', 'عیار: ۹۹۹').purity, 999);
+  assert.equal(G.parseFacts('شمش نقره 24 عیار توکنیکو').eligible, false);
+  assert.equal(G.parseFacts('شمش روکش طلا 24 عیار توکنیکو').eligible, false);
+});
+
+test('additional Digikala brands work through their explicit purity labels', () => {
+  for (const brand of ['ققنوس', 'ونوس گلد', 'ونوس', 'زربد', 'طلای آمیتیس', 'آرسس', 'سوت']) {
+    const facts = G.parseFacts(`شمش طلا ۱۸ عیار ${brand} وزن ۱ گرم`);
+    assert.equal(facts.eligible, true, brand);
+    assert.equal(facts.purity, 750, brand);
+    assert.deepEqual(facts.errors, {}, brand);
+    assert.equal(G.parseFacts(`شمش طلا ${brand} وزن ۱ گرم`).purity, null, brand);
+  }
+  assert.equal(G.parseFacts('شمش طلا 995 عیار کسری مدل 24k').purity, 995);
+  assert.equal(G.parseFacts('شمش طلا کسری مدل 24k').purity, null);
+});

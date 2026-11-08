@@ -13,6 +13,21 @@ const product = `<main><h1>شمش طلا 999 وزن 1 گرم</h1><div data-gold-
 const settle = () => new Promise(resolve => setTimeout(resolve, 260));
 const selectedWeightFixture = fs.readFileSync(`${__dirname}/fixtures/selected-total-weight.html`, 'utf8');
 
+test('Tokeniko 24-karat titles calculate with 995 when numeric specifications are absent', () => {
+  for (const title of ['شمش طلا 24 عیار توکنیکو مدل GHA-0.5', 'شمش طلا 24 عیـار تـوکـنیـکـو مـدل A - 1']) {
+    const html = product.replace('شمش طلا 999 وزن 1 گرم', title)
+      .replace('</h1>', '</h1><p>وزن طلا: 0.5 گرم</p>');
+    const dom = page(html);
+    try {
+      const facts = dom.window.DigikalaGold.readProduct(dom.window.document);
+      assert.equal(facts.weight, .5);
+      assert.equal(facts.purity, 995);
+      assert.equal(widget(dom).querySelector('[name=purity]').value, '995');
+      assert.match(widget(dom).textContent, /۱٬۵۰۷٬۵۳۸ تومان/);
+    } finally { dom.window.close(); }
+  }
+});
+
 test('central bank coins display a 900-purity calculation', () => {
   const dom = page(product.replace('شمش طلا 999 وزن 1 گرم', 'سکه بانک مرکزی وزن ۱ گرم'));
   try {

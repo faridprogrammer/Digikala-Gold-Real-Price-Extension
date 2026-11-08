@@ -4,7 +4,7 @@
   function normalize(value) {
     return String(value ?? '').replace(/[۰-۹]/g, c => c.charCodeAt(0) - 1776)
       .replace(/[٠-٩]/g, c => c.charCodeAt(0) - 1632)
-      .replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/٫/g, '.')
+      .replace(/ي/g, 'ی').replace(/ك/g, 'ک').replace(/ـ/g, '').replace(/٫/g, '.')
       .replace(/[٬,]/g, '').replace(/[\u200c\u200e\u200f]/g, ' ').replace(/\s+/g, ' ').trim();
   }
   function number(value) {
@@ -52,6 +52,11 @@
       if (/طلای?\s*محمد/.test(name)) purityValues.push(995);
       if (/زیوتو\s*پلاس/.test(name)) purityValues.push(999);
       else if (/زیوتو/.test(name) && /(?<![\d.])24(?![\d.])/.test(name)) purityValues.push(995);
+      // Digikala dkp-18567127 and Tokeniko's catalog confirm 995 for its
+      // 24-karat gold bars. Do not extend this default to other product lines.
+      if (/(?:^|[^\p{L}])توکنیکو(?=$|[^\p{L}])/u.test(name)
+        && /(?:^|[^\p{L}])شمش(?=$|[^\p{L}])/u.test(name)
+        && /(?<![\d.])24\s*[عغ]یار|[عغ]یار\s*[:：]?\s*24(?![\d.])/.test(name)) purityValues.push(995);
     }
     const counts = [];
     for (const match of text.matchAll(/(?:بسته(?:\s*بندی)?\s*(\d+)\s*عدد(?:ی)?|(?:تعداد)\s*[:：]?\s*(\d+))/g)) counts.push(Number(match[1] || match[2]));

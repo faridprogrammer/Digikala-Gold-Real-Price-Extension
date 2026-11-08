@@ -6,13 +6,15 @@
   const widgets = new Map();
   let productIdentity = null, overrides = null, timer;
   const style = `
-    :host { display:block; margin:10px 0; color:#183e34; font:12px/1.9 Tahoma,Arial,sans-serif; direction:rtl; }
-    * { box-sizing:border-box; } section { padding:12px; border:1px solid #bfd8cc; border-radius:10px; background:#f1f8f3; }
-    strong { display:block; font-size:13px; } .amount { font-size:17px; font-weight:bold; font-variant-numeric:tabular-nums; }
-    summary,button { cursor:pointer; } summary { margin-top:6px; } p { margin:5px 0; } .muted { color:#55645f; }
-    .manual { color:#785600; } form { display:grid; gap:8px; margin-top:10px; } label { display:grid; gap:3px; }
-    input,select,button { font:inherit; padding:7px; border:1px solid #9aafa5; border-radius:6px; min-width:0; background:white; color:#183e34; }
-    input { direction:ltr; width:100%; } .buttons { display:flex; gap:8px; flex-wrap:wrap; } button[type=submit] { background:#185f48; color:white; }
+    :host { display:block; min-width:0; margin:12px 0; padding:4px; color:#183e34; font:12px/1.9 Tahoma,Arial,sans-serif; direction:rtl; }
+    * { box-sizing:border-box; } section { padding:18px; border:1px solid #b8d7c9; border-inline-start:4px solid #b58a32; border-radius:16px; background:linear-gradient(135deg,#fffdf7,#edf8f2); box-shadow:0 4px 16px #183e3412; overflow-wrap:anywhere; }
+    strong { display:block; font-size:13px; line-height:1.8; } .amount { margin:10px 0 12px; color:#10583e; font-size:clamp(20px,2vw,24px); font-weight:bold; line-height:1.7; font-variant-numeric:tabular-nums; }
+    summary,button { cursor:pointer; } summary { padding:9px 0 0; border-top:1px solid #cfe2d7; color:#245b47; font-weight:bold; } summary:hover { color:#0d4430; } details[open] summary { margin-bottom:10px; } p { margin:6px 0; } .muted { color:#55645f; }
+    .manual { color:#785600; } form { display:grid; gap:10px; margin-top:14px; } label { display:grid; gap:5px; }
+    input,select,button { font:inherit; padding:9px 10px; border:1px solid #a7c2b5; border-radius:9px; min-width:0; background:white; color:#183e34; }
+    input,select { width:100%; } input { direction:ltr; } .buttons { display:flex; gap:8px; flex-wrap:wrap; margin-top:2px; } button { font-weight:bold; } button:hover { background:#e6f2eb; } button[type=submit] { border-color:#185f48; background:#185f48; color:white; } button[type=submit]:hover { background:#104a37; }
+    summary:focus-visible,input:focus-visible,select:focus-visible,button:focus-visible { outline:2px solid #267b59; outline-offset:3px; }
+    @media (max-width:480px) { section { padding:14px; } }
     .error { color:#a22929; }`;
   function node(tag, text, className) {
     const e = document.createElement(tag);
