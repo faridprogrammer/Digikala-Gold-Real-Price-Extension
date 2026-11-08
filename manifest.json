@@ -1,0 +1,11 @@
+{
+  "manifest_version": 3,
+  "name": "قیمت واقعی طلا در دیجیکالا",
+  "version": "1.0.0",
+  "description": "محاسبه قیمت هر گرم معادل طلای ۱۸ عیار برای محصولات طلای دیجی‌کالا",
+  "content_scripts": [{
+    "matches": ["https://digikala.com/*", "https://www.digikala.com/*"],
+    "js": ["src/gold.js", "src/digikala.js", "src/content.js"],
+    "run_at": "document_idle"
+  }]
+}

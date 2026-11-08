@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Packaged extension artifacts
+*.zip
+*.crx
+*.pem
+
+# Test coverage and logs
+coverage/
+.nyc_output/
+*.log
+
+# Local environment settings
+.env
+.env.*
+!.env.example
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini
+sample

@@ -1,0 +1,141 @@
+const { test } = require('node:test');
+const assert = require('node:assert/strict');
+const G = require('../src/gold.js');
+
+test('750 normalization uses the entire purchase price', () => {
+  assert.ok(Math.abs(G.calculate({ price: 1000000, weight: 1, purity: 999 }) - 750750.75075075) < .00001);
+  assert.equal(G.calculate({ price: 15000000, weight: 2, purity: 750 }), 7500000);
+  assert.equal(G.calculate({ price: 9950000, weight: 1, purity: 995 }), 7500000);
+});
+test('Persian and Arabic digits and separators', () => {
+  assert.equal(G.number('۱٬۰۰۰٬۰۰۰'), 1000000);
+  assert.equal(G.number('٠٫٥'), .5);
+  assert.ok(Number.isNaN(G.number('1abc')));
+});
+test('explicit Persian bullion data and multipack', () => {
+  const facts = G.parseFacts('شمش طلا عیار ۹۹۹ وزن ۱ گرم بسته ۵ عددی');
+  assert.equal(facts.eligible, true);
+  assert.equal(facts.weight, 5);
+  assert.equal(facts.purity, 999);
+  assert.deepEqual(facts.errors, {});
+});
+test('weight unit conversions and label values', () => {
+  assert.equal(G.parseFacts('شمش طلا ۹۹۵ وزن ۵۰۰ سوت').weight, .5);
+  assert.equal(G.parseFacts('شمش طلا 999', 'وزن: 0.5\nعیار: 999').weight, .5);
+  assert.equal(G.parseFacts('شمش طلا 999 وزن 1 میلی گرم').weight, .001);
+  assert.equal(G.parseFacts('Gold bar 995 0.001 kg').weight, 1);
+});
+test('conflicting weight, purity and quantities are never averaged', () => {
+  assert.equal(G.parseFacts('شمش طلا 999 وزن 1 گرم', 'وزن 2 گرم').weight, null);
+  assert.equal(G.parseFacts('شمش طلا 999 وزن 1 گرم', 'عیار 995').purity, null);
+  assert.equal(G.parseFacts('شمش طلا 999 وزن 1 گرم بسته 2 عددی', 'تعداد 3').weight, null);
+});
+test('selected total weight is not multiplied by the pack count', () => {
+  const facts = G.parseFacts('شمش طلا پارسیس مدل 100 بسته 6 عددی', '', { totalWeightText: 'وزن طلا: ۰٫۶ گرم' });
+  assert.equal(facts.weight, .6);
+  assert.equal(facts.count, 6);
+  assert.deepEqual(facts.errors, {});
+});
+test('per-bar title weight can agree with the selected package total', () => {
+  const facts = G.parseFacts('شمش طلا پارسیس وزن 100 سوت بسته 6 عددی', '', { totalWeightText: 'وزن طلا: 0.6 گرم' });
+  assert.equal(facts.weight, .6);
+  assert.deepEqual(facts.errors, {});
+});
+test('contradicting selected totals or per-bar weights block calculation', () => {
+  const contradictoryTitle = G.parseFacts('شمش طلا پارسیس وزن 200 سوت بسته 6 عددی', '', { totalWeightText: 'وزن طلا: 0.6 گرم' });
+  assert.equal(contradictoryTitle.weight, null);
+  assert.equal(contradictoryTitle.errors.weight, 'conflict');
+  const contradictoryLabels = G.parseFacts('شمش طلا پارسیس بسته 6 عددی', '', { totalWeightText: 'وزن طلا: 0.6 گرم\nوزن طلا: 1.2 گرم' });
+  assert.equal(contradictoryLabels.weight, null);
+  assert.equal(contradictoryLabels.errors.weight, 'conflict');
+});
+test('24 karat does not silently imply 999 instead of 995', () => {
+  assert.equal(G.parseFacts('شمش طلا عیار 24 وزن 1 گرم').purity, null);
+  assert.equal(G.parseFacts('شمش طلا عیار 24 وزن 1 گرم', 'عیار 995').purity, 995);
+});
+test('user supplied title conventions infer purity across digit formats', () => {
+  for (const [title, expected] of [
+    ['شمش طلا زیوتو 24 وزن 1 گرم', 995],
+    ['شمش طلا ۲۴ عیار زیوتو وزن 1 گرم', 995],
+    ['شمش طلا زیوتو ٢٤ وزن 1 گرم', 995],
+    ['شمش طلا ۱۸ وزن 1 گرم', 750],
+    ['شمش طلا 18 وزن 1 گرم', 750],
+    ['شمش طلا ١٨ وزن 1 گرم', 750],
+    ['شمش طلا پارسیس وزن 1 گرم', 999],
+    ['شمش طلا ایران شمش وزن 1 گرم', 995],
+    ['شمش طلا ۲۴ عیار ایران‌شمش وزن 1 گرم', 995],
+    ['شمش طلا ایرانشمش وزن 1 گرم', 995],
+    ['شمش طلا زیوتو پلاس وزن 1 گرم', 999],
+    ['شمش طلا زیوتو‌پلاس ۲۴ وزن 1 گرم', 999],
+    ['شمش طلا زیوتوپلاس 24 وزن 1 گرم', 999]
+  ]) {
+    const facts = G.parseFacts(title);
+    assert.equal(facts.purity, expected, title);
+    assert.equal(facts.errors.purity, undefined, title);
+  }
+});
+test('title conventions preserve conflicts with explicit facts', () => {
+  for (const [title, specs] of [
+    ['شمش طلا پارسیس وزن 1 گرم', 'عیار 995'],
+    ['شمش طلا زیوتو 24 وزن 1 گرم', 'عیار 999'],
+    ['شمش طلا ایران‌شمش وزن 1 گرم', 'عیار 999'],
+    ['شمش طلا زیوتو پلاس 995 وزن 1 گرم', ''],
+    ['انگشتر طلا ۱۸ عیار وزن 1 گرم', 'عیار 999'],
+    ['سکه طلا پلاکو وزن 1 گرم', 'عیار 995'],
+    ['شمش طلای محمد ۲۴ عیار وزن 1 گرم', 'عیار 999']
+  ]) {
+    const facts = G.parseFacts(title, specs);
+    assert.equal(facts.purity, null, title);
+    assert.equal(facts.errors.purity, 'conflict', title);
+  }
+});
+test('explicit 18-karat titles take precedence over brand defaults for 24-karat lines', () => {
+  for (const brand of ['ایران شمش', 'پارسیس', 'زیوتو پلاس', 'زیوتو', 'طلای محمد']) {
+    const facts = G.parseFacts(`انگشتر طلا ${brand} ۱۸ عیار وزن 1 گرم`);
+    assert.equal(facts.purity, 750, brand);
+    assert.deepEqual(facts.errors, {}, brand);
+  }
+});
+test('title conventions do not infer regular Zioto without 24 or match larger numbers', () => {
+  for (const title of ['شمش طلا زیوتو وزن 1 گرم', 'شمش طلا مدل 180 وزن 1 گرم', 'شمش طلا زیوتو مدل 240 وزن 1 گرم', 'شمش طلا وزن 0.18 گرم']) {
+    assert.equal(G.parseFacts(title).purity, null, title);
+  }
+});
+test('all seven confirmed purity rules work with Persian title digits', () => {
+  for (const [title, expected] of [
+    ['شمش طلا ایران شمش ۲۴ عیار وزن ۱ گرم', 995],
+    ['شمش طلا پارسیس ۲۴ عیار وزن ۱ گرم', 999],
+    ['شمش طلا زیوتو پلاس ۲۴ عیار وزن ۱ گرم', 999],
+    ['شمش طلا زیوتو ۲۴ عیار وزن ۱ گرم', 995],
+    ['سکه طلا پلاکو وزن ۱ گرم', 750],
+    ['انگشتر طلا ۱۸ غیار وزن ۱ گرم', 750],
+    ['شمش طلای محمد ۲۴ عیار وزن ۱ گرم', 995]
+  ]) {
+    const facts = G.parseFacts(title);
+    assert.equal(facts.eligible, true, title);
+    assert.equal(facts.purity, expected, title);
+    assert.deepEqual(facts.errors, {}, title);
+  }
+});
+test('gold coins and jewelry are eligible alongside bars', () => {
+  for (const title of [
+    'سکه گرمی طلا 18 عیار ماربر مدل ماربر 1405',
+    'انگشتر طلا 750 وزن 1 گرم',
+    'گردنبند طلا 18 عیار وزن 1 گرم',
+    'زنجیر طلا 18 عیار وزن 1 گرم',
+    'دستبند طلا 18 عیار وزن 1 گرم',
+    'گوشواره طلا 18 عیار وزن 1 گرم',
+    'پلاک طلا 18 عیار وزن 1 گرم',
+    'آویز طلا 18 عیار وزن 1 گرم',
+    'سرویس طلا 18 عیار وزن 1 گرم',
+    'Gold ring 750 1 g'
+  ]) assert.equal(G.parseFacts(title).eligible, true, title);
+});
+test('exclude silver, plated gold, and products only described as golden colored', () => {
+  for (const title of ['شمش نقره 999 وزن 1 گرم', 'شمش روکش طلا 999 وزن 1 گرم', 'Gold plated bar 999 1 g', 'دستبند طلایی وزن 1 گرم', 'گوشواره بدلی به رنگ طلا']) {
+    assert.equal(G.parseFacts(title).eligible, false, title);
+  }
+});
+test('invalid and unsupported values cannot produce a result', () => {
+  for (const values of [{ price: 0, weight: 1, purity: 999 }, { price: 10, weight: -1, purity: 750 }, { price: Infinity, weight: 1, purity: 999 }, { price: 10, weight: 1, purity: 900 }]) assert.equal(G.calculate(values), null);
+});

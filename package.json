@@ -1,0 +1,13 @@
+{
+  "name": "digikala-gold-750",
+  "version": "1.0.0",
+  "description": "محاسبه قیمت هر گرم معادل طلای ۱۸ عیار برای محصولات طلای دیجی‌کالا",
+  "private": true,
+  "scripts": {
+    "test": "node --test",
+    "check": "node --check src/gold.js && node --check src/digikala.js && node --check src/content.js"
+  },
+  "devDependencies": {
+    "jsdom": "^31.0.0"
+  }
+}
