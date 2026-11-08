@@ -6,6 +6,7 @@ test('750 normalization uses the entire purchase price', () => {
   assert.ok(Math.abs(G.calculate({ price: 1000000, weight: 1, purity: 999 }) - 750750.75075075) < .00001);
   assert.equal(G.calculate({ price: 15000000, weight: 2, purity: 750 }), 7500000);
   assert.equal(G.calculate({ price: 9950000, weight: 1, purity: 995 }), 7500000);
+  assert.equal(G.calculate({ price: 9000000, weight: 1, purity: 900 }), 7500000);
 });
 test('Persian and Arabic digits and separators', () => {
   assert.equal(G.number('۱٬۰۰۰٬۰۰۰'), 1000000);
@@ -136,6 +137,40 @@ test('exclude silver, plated gold, and products only described as golden colored
     assert.equal(G.parseFacts(title).eligible, false, title);
   }
 });
+test('central bank coins infer 900 purity from title or specifications', () => {
+  for (const [title, specs] of [
+    ['سکه بانک مرکزی وزن ۱ گرم', ''],
+    ['سکه طلای بانک‌مرکزی وزن ۱ گرم', ''],
+    ['سکه وزن ۱ گرم', 'تولیدکننده: بانک مرکزی'],
+    ['ربع سکه طلا بانک مرکزی وزن ۲ گرم', 'عیار: ۹۰۰']
+  ]) {
+    const facts = G.parseFacts(title, specs);
+    assert.equal(facts.eligible, true, title);
+    assert.equal(facts.purity, 900, title);
+    assert.deepEqual(facts.errors, {}, title);
+  }
+});
+
+test('explicit 900 purity supports Persian, Arabic and Latin digits', () => {
+  for (const purity of ['۹۰۰', '٩٠٠', '900']) {
+    assert.equal(G.parseFacts(`سکه طلا عیار ${purity} وزن ۱ گرم`).purity, 900);
+    assert.equal(G.parseFacts('سکه طلا وزن ۱ گرم', `عیار: ${purity}`).purity, 900);
+  }
+});
+
+test('central bank rule preserves conflicts and does not apply to other coins or products', () => {
+  for (const specs of ['عیار: ۷۵۰', 'عیار: ۹۹۵', 'عیار: ۹۹۹']) {
+    const facts = G.parseFacts('سکه طلا بانک مرکزی وزن ۱ گرم', specs);
+    assert.equal(facts.purity, null);
+    assert.equal(facts.errors.purity, 'conflict');
+  }
+  assert.equal(G.parseFacts('سکه طلا وزن ۱ گرم').purity, null);
+  assert.equal(G.parseFacts('سکه طلا ماربر ۱۸ عیار وزن ۱ گرم').purity, 750);
+  assert.equal(G.parseFacts('شمش طلا بانک مرکزی وزن ۱ گرم').purity, null);
+  assert.equal(G.parseFacts('سکه نقره بانک مرکزی وزن ۱ گرم').eligible, false);
+  assert.equal(G.parseFacts('سکه روکش طلا بانک مرکزی وزن ۱ گرم').eligible, false);
+});
+
 test('invalid and unsupported values cannot produce a result', () => {
-  for (const values of [{ price: 0, weight: 1, purity: 999 }, { price: 10, weight: -1, purity: 750 }, { price: Infinity, weight: 1, purity: 999 }, { price: 10, weight: 1, purity: 900 }]) assert.equal(G.calculate(values), null);
+  for (const values of [{ price: 0, weight: 1, purity: 999 }, { price: 10, weight: -1, purity: 750 }, { price: Infinity, weight: 1, purity: 999 }, { price: 10, weight: 1, purity: 850 }]) assert.equal(G.calculate(values), null);
 });

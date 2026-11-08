@@ -13,6 +13,38 @@ const product = `<main><h1>شمش طلا 999 وزن 1 گرم</h1><div data-gold-
 const settle = () => new Promise(resolve => setTimeout(resolve, 260));
 const selectedWeightFixture = fs.readFileSync(`${__dirname}/fixtures/selected-total-weight.html`, 'utf8');
 
+test('central bank coins display a 900-purity calculation', () => {
+  const dom = page(product.replace('شمش طلا 999 وزن 1 گرم', 'سکه بانک مرکزی وزن ۱ گرم'));
+  try {
+    const shadow = widget(dom);
+    assert.match(shadow.textContent, /۸۳۳٬۳۳۳ تومان/);
+    assert.equal(shadow.querySelector('[name=purity]').value, '900');
+  } finally { dom.window.close(); }
+});
+
+test('900 purity can be selected and applied manually', () => {
+  const dom = page(product.replace('شمش طلا 999 وزن 1 گرم', 'سکه طلا وزن ۱ گرم'));
+  try {
+    const shadow = widget(dom);
+    assert.match(shadow.textContent, /محاسبه ممکن نیست/);
+    const form = shadow.querySelector('form');
+    form.elements.purity.value = '900';
+    form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
+    assert.match(shadow.textContent, /۸۳۳٬۳۳۳ تومان/);
+    assert.match(shadow.textContent, /محاسبه با مقادیر دستی/);
+  } finally { dom.window.close(); }
+});
+
+test('central bank identification in specifications reaches the product calculation', () => {
+  const html = product.replace('شمش طلا 999 وزن 1 گرم', 'سکه وزن ۱ گرم')
+    .replace('</main>', '<div data-gold-spec>تولیدکننده: بانک مرکزی</div></main>');
+  const dom = page(html);
+  try {
+    assert.match(widget(dom).textContent, /۸۳۳٬۳۳۳ تومان/);
+    assert.equal(widget(dom).querySelector('[name=purity]').value, '900');
+  } finally { dom.window.close(); }
+});
+
 test('selected total gold weight is read outside specifications without multiplying the pack again', () => {
   const dom = page(selectedWeightFixture);
   try {

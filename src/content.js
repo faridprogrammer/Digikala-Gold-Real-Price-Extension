@@ -77,7 +77,7 @@
       event.preventDefault();
       const values = Object.fromEntries(new FormData(form).entries());
       const next = Object.fromEntries(Object.entries(values).map(([k, v]) => [k, G.number(v)]));
-      if (G.calculate(next) === null) { error.textContent = 'قیمت و وزن باید عدد مثبت و عیار یکی از ۷۵۰، ۹۹۵ یا ۹۹۹ باشد.'; return; }
+      if (G.calculate(next) === null) { error.textContent = 'قیمت و وزن باید عدد مثبت و عیار یکی از ۷۵۰، ۹۰۰، ۹۹۵ یا ۹۹۹ باشد.'; return; }
       overrides = next; refresh();
     });
     return form;

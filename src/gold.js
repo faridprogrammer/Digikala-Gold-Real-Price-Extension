@@ -1,6 +1,6 @@
 (function (root) {
   'use strict';
-  const purities = [750, 995, 999];
+  const purities = [750, 900, 995, 999];
   function normalize(value) {
     return String(value ?? '').replace(/[۰-۹]/g, c => c.charCodeAt(0) - 1776)
       .replace(/[٠-٩]/g, c => c.charCodeAt(0) - 1632)
@@ -25,7 +25,9 @@
   function parseFacts(title, specifications = '', { totalWeightText = '' } = {}) {
     const name = normalize(title);
     const text = `${name} ${normalize(specifications)}`;
-    const eligible = /(?:^|[^\p{L}])طلای?(?=$|[^\p{L}])|\bgold\b/iu.test(name)
+    const centralBankCoin = /(?:^|[^\p{L}])سکه(?=$|[^\p{L}])/u.test(name)
+      && /بانک\s*مرکزی/.test(text);
+    const eligible = (centralBankCoin || /(?:^|[^\p{L}])طلای?(?=$|[^\p{L}])|\bgold\b/iu.test(name))
       && !/(?:نقره|روکش|آبکاری|بدلی|silver|plated)/i.test(name);
     const weights = gramWeights(text);
     // Specification labels often put the unit before the value: «وزن: 1».
@@ -34,10 +36,11 @@
       if (!/^\s*(?:کیلوگرم|میلی\s*گرم|سوت|kg|mg)/i.test(after)) weights.push(Number(match[1]));
     }
     const purityValues = [];
-    for (const match of text.matchAll(/(?:[عغ]یار\s*[:：]?\s*(999|995|750|18)(?!\d)|\b(999|995|750)\b|(18)\s*[عغ]یار)/g)) {
+    for (const match of text.matchAll(/(?:[عغ]یار\s*[:：]?\s*(999|995|900|750|18)(?!\d)|\b(999|995|900|750)\b|(18)\s*[عغ]یار)/g)) {
       const value = Number(match[1] || match[2] || match[3]);
       purityValues.push(value === 18 ? 750 : value);
     }
+    if (centralBankCoin) purityValues.push(900);
     // User-supplied brand defaults describe the 24-karat lines. Explicit
     // 18-karat titles use 750; contradictory numeric facts still conflict.
     const titleIs18K = /(?<![\d.])18(?![\d.])/.test(name);
